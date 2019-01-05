@@ -1,0 +1,251 @@
+---
+title: "algorithms"
+author: "Jiayu Liu ziwei tang"
+date: "11/25/2018"
+output: pdf_document
+---
+
+
+read data
+```{r}
+bank_train <- read.csv(file="/Users/liujiayu/MAS648 DATA MINING/Fianl Project/all/bankruptcy_Train.csv", header=TRUE, sep=",")
+bank_test <- read.csv(file="/Users/liujiayu/MAS648 DATA MINING/Fianl Project/all/bankruptcy_Test.csv", header=TRUE, sep=",")
+bank_test <- bank_test[,-1]
+#table(train$class)
+#result <- ifelse(data1$class==1,"yes","no")
+#data1 <- data.frame(data1[,-65],result = as.factor(result))
+#str(data1)
+train <- bank_train
+test <- bank_test
+set.seed(1)
+train.index <- sample(1:nrow(train),nrow(train)*0.7)
+dtrain <- train[train.index,]
+dtest <- train[-train.index,]
+```
+
+logistic regression(Area under the curve: 0.534)
+```{r}
+library(pROC)
+glm.fits=glm(factor(class)~.,data=dtrain,family=binomial)
+summary(glm.fits)
+#because there is NA in coefficient, so we drop this variable and then fit the model again
+starttime <- proc.time()
+glm.fits.new=glm(factor(class)~.-Attr18,data=dtrain,family=binomial)
+glm.probs=predict(glm.fits.new,newdata=dtest,type="response")
+auc(dtest$class,glm.probs)
+endtime <- proc.time()-starttime
+#elapsed:0.8s
+
+#leaderboard
+glm.fits.new=glm(factor(class)~.-Attr18,data=dtrain,family=binomial)
+summary(glm.fits.new)
+
+glm.probs=predict(glm.fits.new,newdata=dtest,type="response")
+write.csv(data.frame(glm.probs), "logistic.csv")
+#0.54649
+
+roc <- roc(dtest$class,glm.probs)
+plot(roc, print.auc = TRUE, auc.polygon = TRUE, legacy.axes = TRUE, 
+     grid = c(0.1, 0.2), grid.col = c("green", "red"), max.auc.polygon = TRUE,  
+     auc.polygon.col = "skyblue", print.thres = TRUE, xlab = "FPR", ylab = "TPR",
+     main = "AUC")
+```
+
+
+LDA:Area under the curve: 0.8226 
+QDA:Area under the curve: 0.7556
+```{r}
+#LDA
+library(MASS)
+starttime <- proc.time()
+lda.fit=lda(factor(class)~.,data=dtrain)
+lda.pred=predict(lda.fit,newdata=dtest)
+auc(dtest$class,lda.pred$posterior[,2])
+endtime <- proc.time()-starttime
+endtime
+
+lda.pred=predict(lda.fit,newdata=test)
+write.csv(data.frame(lda.pred), "lda.csv")
+
+#leaderboard:0.86591
+
+roc <- roc(dtest$class,lda.pred$posterior[,2])
+plot(roc, print.auc = TRUE, auc.polygon = TRUE, legacy.axes = TRUE, 
+     grid = c(0.1, 0.2), grid.col = c("green", "red"), max.auc.polygon = TRUE,  
+     auc.polygon.col = "skyblue", print.thres = TRUE, xlab = "FPR", ylab = "TPR",
+     main = "AUC")
+
+#QDA
+library(data.table)
+corMatrix <- cor(dtrain[,-65])
+corMatrix
+setDT(melt(corMatrix))[order(value)]
+dtrain_new <- dtrain[,-c(10,38,25,2,14,7)]
+#findCorrelation(corr, cutoff = .90, verbose = FALSE)
+
+starttime <- proc.time()
+qda.fit=qda(class~. , data=dtrain_new)
+qda.pred=predict(qda.fit,newdata=dtest)
+auc(dtest$class,qda.pred$posterior[,2])
+endtime <- proc.time()-starttime
+endtime
+
+qda.pred=predict(qda.fit,newdata=test)
+write.csv(data.frame(qda.pred), "qda.csv")
+
+##leaderboard:0.72759
+
+roc <- roc(dtest$class,qda.pred$posterior[,2])
+plot(roc, print.auc = TRUE, auc.polygon = TRUE, legacy.axes = TRUE, 
+     grid = c(0.1, 0.2), grid.col = c("green", "red"), max.auc.polygon = TRUE,  
+     auc.polygon.col = "skyblue", print.thres = TRUE, xlab = "FPR", ylab = "TPR",
+     main = "AUC")
+```
+
+
+SVM
+```{r}
+library(e1071)
+starttime <- proc.time()
+lsvm.fit=svm(factor(class) ~., data=dtrain, kernel="linear",cost=1,probability=TRUE)
+pred.lsvm <- predict(lsvm.fit,newdata=dtest,probability=TRUE)
+auc(dtest$class,attr(pred.lsvm, "probabilities")[,2])
+endtime <- proc.time()-starttime
+endtime
+#Area under the curve: 0.8341
+
+pred.lsvm <- predict(lsvm.fit,newdata=test,probability=TRUE)
+write.csv(data.frame(attr(pred.lsvm, "probabilities")[,2]), "lsvm.csv")
+#leaderboard:0.87242
+
+roc <- roc(dtest$class,attr(pred.lsvm, "probabilities")[,2])
+plot(roc, print.auc = TRUE, auc.polygon = TRUE, legacy.axes = TRUE, 
+     grid = c(0.1, 0.2), grid.col = c("green", "red"), max.auc.polygon = TRUE,  
+     auc.polygon.col = "skyblue", print.thres = TRUE, xlab = "FPR", ylab = "TPR",
+     main = "AUC")
+
+starttime <- proc.time()
+psvm.fit=svm(factor(class) ~., data=dtrain, kernel="polynomial",cost=1,probability=TRUE)
+pred.psvm=predict(psvm.fit, newdata=dtest,probability=TRUE)
+auc(dtest$class,attr(pred.psvm, "probabilities")[,2])
+endtime <- proc.time()-starttime
+endtime
+#Area under the curve: 0.709
+
+pred.psvm <- predict(psvm.fit,newdata=test,probability=TRUE)
+write.csv(data.frame(attr(pred.psvm, "probabilities")[,2]), "psvm.csv")
+#leaderboard:0.71857
+
+roc <- roc(dtest$class,attr(pred.psvm, "probabilities")[,2])
+plot(roc, print.auc = TRUE, auc.polygon = TRUE, legacy.axes = TRUE, 
+     grid = c(0.1, 0.2), grid.col = c("green", "red"), max.auc.polygon = TRUE,  
+     auc.polygon.col = "skyblue", print.thres = TRUE, xlab = "FPR", ylab = "TPR",
+     main = "AUC")
+
+starttime <- proc.time()
+rsvm.fit=svm(factor(class) ~., data=dtrain, kernel="radial",cost=1,probability=TRUE)
+pred.rsvm=predict(rsvm.fit,newdata=dtest,probability=TRUE)
+auc(dtest$class,attr(pred.rsvm, "probabilities")[,2])
+endtime <- proc.time()-starttime
+endtime
+#Area under the curve: 0.8284
+
+pred.rsvm <- predict(rsvm.fit,newdata=test,probability=TRUE)
+write.csv(data.frame(attr(pred.rsvm, "probabilities")[,2]), "rsvm.csv")
+#leaderboard:0.86415
+
+roc <- roc(dtest$class,attr(pred.rsvm, "probabilities")[,2])
+plot(roc, print.auc = TRUE, auc.polygon = TRUE, legacy.axes = TRUE, 
+     grid = c(0.1, 0.2), grid.col = c("green", "red"), max.auc.polygon = TRUE,  
+     auc.polygon.col = "skyblue", print.thres = TRUE, xlab = "FPR", ylab = "TPR",
+     main = "AUC")
+```
+
+
+random forest:Area under the curve: 0.8876(mtry=8) 
+```{r}
+library(randomForest)
+p = ncol(dtrain)-1
+starttime <- proc.time()
+set.seed(1)
+rf.fit = randomForest(factor(class) ~ ., 
+                      mtry=8, data=dtrain)
+pred.rf <- predict(rf.fit, dtest, type="prob")
+auc(dtest$class,pred.rf[,2])
+endtime <- proc.time()-starttime
+#elapsed:17.446 
+
+pred.rf <- predict(rf.fit, test, type="prob")[,2]
+write.csv(data.frame(pred.rf), "rf.csv")
+#leaderboard:0.88575
+
+roc <- roc(dtest$class,pred.rf[,2])
+plot(roc, print.auc = TRUE, auc.polygon = TRUE, legacy.axes = TRUE, 
+     grid = c(0.1, 0.2), grid.col = c("green", "red"), max.auc.polygon = TRUE,  
+     auc.polygon.col = "skyblue", print.thres = TRUE, xlab = "FPR", ylab = "TPR",
+     main = "AUC")
+```
+
+
+Boost: Area under the curve: 0.8715
+```{r}
+library(gbm)
+
+starttime <- proc.time()
+set.seed(1)
+boost.fit <- gbm(class~.,data=dtrain,distribution = "bernoulli",n.trees=50,shrinkage = 0.01,interaction.depth=3)
+pred.boost <- predict(boost.fit,newdata=dtest,n.trees=50,type = "response")
+auc(dtest$class,pred.boost)
+endtime <- proc.time()-starttime
+endtime
+
+pred.boost <- predict(boost.fit,newdata=test,n.trees=50,type = "response")
+write.csv(data.frame(pred.boost), "boost.csv")
+#leaderboard:0.87588
+
+roc <- roc(dtest$class,pred.boost)
+plot(roc, print.auc = TRUE, auc.polygon = TRUE, legacy.axes = TRUE, 
+     grid = c(0.1, 0.2), grid.col = c("green", "red"), max.auc.polygon = TRUE,  
+     auc.polygon.col = "skyblue", print.thres = TRUE, xlab = "FPR", ylab = "TPR",
+     main = "AUC")
+```
+
+
+xgboost
+```{r}
+library(xgboost)
+require(xgboost)
+new_tr <- data.matrix(dtrain[,-65])
+new_ts <- data.matrix(dtest[,-65])
+new_test <- data.matrix(test)
+
+new_dtrain <- xgb.DMatrix(data = new_tr,label=dtrain$class) 
+new_dtest <- xgb.DMatrix(data = new_ts,label=dtest$class)
+new_test <- xgb.DMatrix(data = new_test)
+
+starttime <- proc.time()
+set.seed(1)
+xgb.fit <- xgboost(data=new_dtrain,nrounds=400, 
+                   objective="binary:logistic",
+                   eval_metric="auc",eta=0.3,
+                   subsample=1,colsample_bytree = 1,
+                   max_depth=6,gamma=0)
+pred.xgb <- predict(xgb.fit,new_dtest)
+auc(dtest$class,pred.xgb)
+endtime <- proc.time()-starttime
+endtime
+#Area under the curve: 0.9169
+
+pred.xgb <- predict(xgb.fit,new_test)
+write.csv(data.frame(pred.xgb), "xgb.csv")
+#leaderboard:0.91442
+
+roc <- roc(dtest$class,pred.xgb)
+plot(roc, print.auc = TRUE, auc.polygon = TRUE, legacy.axes = TRUE, 
+     grid = c(0.1, 0.2), grid.col = c("green", "red"), max.auc.polygon = TRUE,  
+     auc.polygon.col = "skyblue", print.thres = TRUE, xlab = "FPR", ylab = "TPR",
+     main = "AUC")
+
+```
+
+

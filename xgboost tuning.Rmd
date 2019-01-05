@@ -1,0 +1,60 @@
+---
+title: "file2"
+author: "Jiayu Liu, Ziwei Tang"
+date: "11/18/2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+data1 <- read.csv(file="/Users/liujiayu/MAS648 DATA MINING/Fianl Project/all/bankruptcy_Train.csv", header=TRUE, sep=",")
+data2 <- read.csv(file="/Users/liujiayu/MAS648 DATA MINING/Fianl Project/all/bankruptcy_Test.csv", header=TRUE, sep=",")
+data2 <- data2[,-1]
+
+train <- data1
+test <- data2
+```
+
+```{r}
+library(xgboost)
+require(xgboost)
+
+new_tr <- data.matrix(train[,-65])
+new_ts <- data.matrix(test)
+dtrain <- xgb.DMatrix(data = new_tr,label = train$class) 
+dtest <- xgb.DMatrix(data = new_ts)
+
+# internal function to tune parameters via CV
+set.seed(1)
+cv.res=xgb.cv(data=new_tr,label=train$class,nfold=10,
+              nrounds=700, objective="binary:logistic",
+              maximize=FALSE,eval_metric="auc",eta=0.05,
+              subsample=0.8,colsample_bytree = 1,max_depth=6,gamma=0)
+
+
+
+set.seed(1)
+myxgb <- xgboost(data=dtrain,
+                 nrounds=436, 
+                 objective="binary:logistic",
+                 eval_metric="auc",
+                 eta=0.05,
+                 subsample=0.8,
+                 colsample_bytree = 1,
+                 max_depth=6,
+                 gamma=0)
+
+preds <- predict(myxgb, dtest)
+write.csv(data.frame(preds), "finalxgb376.csv")
+
+#leaderboard:0.94921 nrounds=382
+#leaderboard:0.94976 nrounds=370
+#leaderboard:0.94981 nrounds=371
+#leaderboard:0.94985 nrounds=373
+
+
+```
