@@ -3,7 +3,7 @@ Subject:
 
 Documents description:
 </br>"methods used.Rmd" is the code for different algorithms we tried. The algorithms are shown below.
-"xgboost tuning.Rmd" is the code for tuning the parameters of Xgboost algorithm.
+</br>"xgboost tuning.Rmd" is the code for tuning the parameters of Xgboost algorithm.
 
 Software used:
 </br> R
