@@ -1,8 +1,8 @@
 Subject:
-Predict whether the companies will bankrupt by combining different algorithms with financial data.
+</br>Predict whether the companies will bankrupt by combining different algorithms with financial data.
 
 Documents description:
-"methods used.Rmd" is the code for different algorithms we tried. The algorithms are shown below.
+</br>"methods used.Rmd" is the code for different algorithms we tried. The algorithms are shown below.
 "xgboost tuning.Rmd" is the code for tuning the parameters of Xgboost algorithm.
 
 Software used:
