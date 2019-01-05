@@ -6,7 +6,7 @@ Documents description:
 "xgboost tuning.Rmd" is the code for tuning the parameters of Xgboost algorithm.
 
 Software used:
-\br R
+<\br> R
 
 Algorithms used:
 Logistic regression（AUC result:0.534)
